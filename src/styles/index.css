@@ -1,0 +1,27 @@
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+
+/* ─── Responsive breakpoints ──────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  /* Hide donut chart and divider on small screens */
+  .kpi-donut,
+  .kpi-divider {
+    display: none !important;
+  }
+
+  /* Force 2-column grid for KPI cards on small screens */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Mobile table: hide table, show card list */
+  .table-desktop { display: none !important; }
+  .table-mobile  { display: flex !important; }
+}
+
+@media (min-width: 641px) {
+  .table-desktop { display: block !important; }
+  .table-mobile  { display: none !important; }
+}
