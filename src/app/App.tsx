@@ -9,12 +9,9 @@ import { mockPharmacies, Pharmacy } from './data/mockData';
 import { lightTheme, darkTheme, Theme } from './theme';
 
 const defaultFilters: Filters = {
-  systems: ['Trier', 'Alpha 7', 'Eden', 'Legado'],
   statuses: ['em_dia', 'atraso_leve', 'atraso_critico', 'sem_dados'],
   cnpjs: [],
   associationCodes: [],
-  contractStatuses: ['Ativo', 'Suspenso', 'Inativo'],
-  minLag: 0,
 };
 
 export default function App() {
@@ -26,15 +23,9 @@ export default function App() {
 
   const filteredData = useMemo(() => {
     return mockPharmacies.filter((p) => {
-      if (!filters.systems.includes(p.system)) return false;
       if (!filters.statuses.includes(p.status)) return false;
       if (filters.cnpjs.length > 0 && !filters.cnpjs.includes(p.cnpj)) return false;
       if (filters.associationCodes.length > 0 && !filters.associationCodes.includes(p.associationCode)) return false;
-      if (!filters.contractStatuses.includes(p.contractStatus)) return false;
-      if (filters.minLag > 0) {
-        if (p.daysLag === null) return false;
-        if (p.daysLag < filters.minLag) return false;
-      }
       return true;
     });
   }, [filters]);

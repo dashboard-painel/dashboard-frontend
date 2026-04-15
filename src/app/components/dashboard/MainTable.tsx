@@ -7,16 +7,12 @@ import {
   ChevronRight,
   CheckCircle,
 } from "lucide-react";
-import { Pharmacy, Status } from "../../data/mockData";
+import { Pharmacy, TagValue } from "../../data/mockData";
 import { FilterBar, Filters } from "./FilterBar";
 import { Theme } from "../../theme";
 import {
-  STATUS_INFO,
-  SYSTEM_COLORS,
-  CONTRACT_COLORS,
-  formatDate,
-  getLagColor,
   getStatusInfo,
+  getTagValueStyles,
 } from "../../constants";
 
 interface MainTableProps {
@@ -45,6 +41,44 @@ function SortIcon({
   return <ChevronDown size={12} color={theme.bg.header} />;
 }
 
+function formatDateBR(isoDate: string): string {
+  // "2026-04-14" → "14/04/2026"
+  const [year, month, day] = isoDate.split("-");
+  return `${day}/${month}/${year}`;
+}
+
+function TagBadge({
+  value,
+  lastSaleDate,
+  theme,
+}: {
+  value: TagValue;
+  lastSaleDate: string;
+  theme: Theme;
+}) {
+  const styles = getTagValueStyles(theme)[value];
+  return (
+    <span
+      title={`Última venda: ${formatDateBR(lastSaleDate)}`}
+      style={{
+        display: "inline-block",
+        padding: "2px 10px",
+        borderRadius: 100,
+        background: styles.bg,
+        color: styles.color,
+        border: `1px solid ${styles.border}`,
+        fontSize: 11,
+        fontWeight: 700,
+        fontFamily: "Inter, sans-serif",
+        whiteSpace: "nowrap",
+        cursor: "help",
+      }}
+    >
+      {value}
+    </span>
+  );
+}
+
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
 export function MainTable({
@@ -53,7 +87,7 @@ export function MainTable({
   onFilterChange,
   theme,
 }: MainTableProps) {
-  const [sortKey, setSortKey] = useState<SortKey>("daysLag");
+  const [sortKey, setSortKey] = useState<SortKey>("status");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(0);
@@ -69,8 +103,16 @@ export function MainTable({
 
   const sorted = useMemo(() => {
     return [...data].sort((a, b) => {
-      const av = a[sortKey];
-      const bv = b[sortKey];
+      // For layer columns (gold/silver/api), sort by their .status string
+      const getVal = (p: Pharmacy, k: SortKey): string | number | null => {
+        const raw = p[k];
+        if (raw !== null && typeof raw === "object" && "status" in raw) {
+          return (raw as { status: string }).status;
+        }
+        return raw as string | number | null;
+      };
+      const av = getVal(a, sortKey);
+      const bv = getVal(b, sortKey);
       if (av === null && bv === null) return 0;
       if (av === null) return 1;
       if (bv === null) return -1;
@@ -88,17 +130,12 @@ export function MainTable({
   const columns: { key: SortKey; label: string }[] = [
     { key: "status", label: "Status" },
     { key: "cnpj", label: "CNPJ" },
-    { key: "name", label: "Nome Farmácia" },
-    { key: "storeNumber", label: "Nº Loja" },
-    { key: "associationCode", label: "Cód. Associação" },
-    { key: "system", label: "Sistema" },
-    { key: "contractStatus", label: "Sit. Contrato" },
-    { key: "lastDateRedshift", label: "Última Data Redshift" },
-    { key: "lastDateApi", label: "Última Data API" },
-    { key: "daysLag", label: "Dias Atraso" },
-    { key: "recordsRedshift", label: "Reg. Redshift" },
-    { key: "recordsApi", label: "Reg. API" },
-    { key: "lastAudit", label: "Última Auditoria" },
+    { key: "name", label: "Nome" },
+    { key: "storeNumber", label: "Cod Farma (N Loja)" },
+    { key: "associationCode", label: "Cod Assoc" },
+    { key: "gold", label: "Gold" },
+    { key: "silver", label: "Silver" },
+    { key: "api", label: "API" },
   ];
 
   return (
@@ -256,9 +293,6 @@ export function MainTable({
               <tbody>
                 {paged.map((pharmacy) => {
                   const info = getStatusInfo(theme)[pharmacy.status];
-                  const sys = SYSTEM_COLORS[pharmacy.system];
-                  const contract = CONTRACT_COLORS[pharmacy.contractStatus];
-                  const lagColor = getLagColor(pharmacy.daysLag);
                   const isCritico = pharmacy.status === "atraso_critico";
                   const isLeve = pharmacy.status === "atraso_leve";
 
@@ -332,7 +366,7 @@ export function MainTable({
                         {pharmacy.name}
                       </td>
 
-                      {/* Número */}
+                      {/* Cod Farma (N Loja) */}
                       <td
                         style={{
                           padding: "11px 14px",
@@ -344,7 +378,7 @@ export function MainTable({
                         #{pharmacy.storeNumber}
                       </td>
 
-                      {/* Cód. Associação */}
+                      {/* Cod Assoc */}
                       <td
                         style={{
                           padding: "11px 14px",
@@ -356,135 +390,20 @@ export function MainTable({
                         {pharmacy.associationCode}
                       </td>
 
-                      {/* Sistema */}
-                      <td
-                        style={{ padding: "11px 14px", whiteSpace: "nowrap" }}
-                      >
-                        <span
-                          style={{
-                            padding: "2px 8px",
-                            borderRadius: 6,
-                            background: sys.bg,
-                            color: sys.color,
-                            border: `1px solid ${sys.border}`,
-                            fontSize: 11,
-                            fontWeight: 700,
-                          }}
-                        >
-                          {pharmacy.system}
-                        </span>
+                      {/* Gold */}
+                      <td style={{ padding: "11px 14px", whiteSpace: "nowrap" }}>
+                        <TagBadge value={pharmacy.gold.status} lastSaleDate={pharmacy.gold.lastSaleDate} theme={theme} />
                       </td>
 
-                      {/* Sit. Contrato */}
-                      <td
-                        style={{ padding: "11px 14px", whiteSpace: "nowrap" }}
-                      >
-                        <span
-                          style={{
-                            padding: "2px 8px",
-                            borderRadius: 6,
-                            background: contract.bg,
-                            color: contract.color,
-                            border: `1px solid ${contract.border}`,
-                            fontSize: 11,
-                            fontWeight: 600,
-                          }}
-                        >
-                          {pharmacy.contractStatus}
-                        </span>
+                      {/* Silver */}
+                      <td style={{ padding: "11px 14px", whiteSpace: "nowrap" }}>
+                        <TagBadge value={pharmacy.silver.status} lastSaleDate={pharmacy.silver.lastSaleDate} theme={theme} />
                       </td>
 
-                      {/* Última Data Redshift */}
-                      <td
-                        style={{
-                          padding: "11px 14px",
-                          fontFamily: "Inter, sans-serif",
-                          fontSize: 12,
-                          color: theme.text.secondary,
-                        }}
-                      >
-                        {formatDate(pharmacy.lastDateRedshift)}
+                      {/* API */}
+                      <td style={{ padding: "11px 14px", whiteSpace: "nowrap" }}>
+                        <TagBadge value={pharmacy.api.status} lastSaleDate={pharmacy.api.lastSaleDate} theme={theme} />
                       </td>
-
-                      {/* Última Data API */}
-                      <td
-                        style={{
-                          padding: "11px 14px",
-                          fontFamily: "Inter, sans-serif",
-                          fontSize: 12,
-                          color: theme.text.secondary,
-                        }}
-                      >
-                        {formatDate(pharmacy.lastDateApi)}
-                      </td>
-
-                      {/* Dias Atraso */}
-                      <td style={{ padding: "11px 14px" }}>
-                        {pharmacy.daysLag === null ? (
-                          <span style={{ color: theme.text.tertiary, fontSize: 13 }}>
-                            —
-                          </span>
-                        ) : (
-                          <span
-                            style={{
-                              color: lagColor,
-                              fontWeight: 700,
-                              fontSize: 14,
-                              fontFamily: "Inter, sans-serif",
-                            }}
-                          >
-                            {pharmacy.daysLag === 0
-                              ? "0"
-                              : `+${pharmacy.daysLag}`}
-                          </span>
-                        )}
-                      </td>
-
-                       {/* Reg. Redshift */}
-                       <td
-                         style={{
-                           padding: "11px 14px",
-                           fontFamily: "Inter, sans-serif",
-                           fontSize: 12,
-                           color: theme.text.secondary,
-                           textAlign: "right",
-                         }}
-                       >
-                         {pharmacy.recordsRedshift === null ? (
-                           <span style={{ color: theme.text.tertiary }}>—</span>
-                         ) : (
-                           pharmacy.recordsRedshift.toLocaleString("pt-BR")
-                         )}
-                       </td>
-
-                       {/* Reg. API */}
-                       <td
-                         style={{
-                           padding: "11px 14px",
-                           fontFamily: "Inter, sans-serif",
-                           fontSize: 12,
-                           color: theme.text.secondary,
-                           textAlign: "right",
-                         }}
-                       >
-                         {pharmacy.recordsApi === null ? (
-                           <span style={{ color: theme.text.tertiary }}>—</span>
-                         ) : (
-                           pharmacy.recordsApi.toLocaleString("pt-BR")
-                         )}
-                       </td>
-
-                       {/* Última Auditoria */}
-                       <td
-                         style={{
-                           padding: "11px 14px",
-                           fontFamily: "Inter, sans-serif",
-                           fontSize: 11,
-                           color: theme.text.tertiary,
-                         }}
-                       >
-                         {pharmacy.lastAudit}
-                       </td>
                     </tr>
                   );
                 })}
@@ -519,7 +438,6 @@ export function MainTable({
           ) : (
             paged.map((pharmacy) => {
               const info = getStatusInfo(theme)[pharmacy.status];
-              const lagColor = getLagColor(pharmacy.daysLag);
               const isCritico = pharmacy.status === "atraso_critico";
               const isLeve = pharmacy.status === "atraso_leve";
               return (
@@ -542,7 +460,7 @@ export function MainTable({
                     gap: 8,
                   }}
                 >
-                  {/* Row 1: status badge + dias atraso */}
+                  {/* Row 1: status badge */}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div
                       style={{
@@ -561,48 +479,36 @@ export function MainTable({
                       <info.Icon size={11} />
                       {info.label}
                     </div>
-                    {pharmacy.daysLag !== null && (
-                      <span style={{ color: lagColor, fontWeight: 700, fontSize: 15, fontFamily: "Inter, sans-serif" }}>
-                        {pharmacy.daysLag === 0 ? "0d" : `+${pharmacy.daysLag}d`}
-                      </span>
-                    )}
+                    <span style={{ fontFamily: "monospace", fontSize: 11, color: theme.text.tertiary }}>
+                      #{pharmacy.storeNumber}
+                    </span>
                   </div>
                   {/* Row 2: name */}
                   <div style={{ fontFamily: "Inter, sans-serif", fontSize: 13, fontWeight: 700, color: theme.text.primary }}>
-                    {pharmacy.name} <span style={{ fontWeight: 400, color: theme.text.tertiary }}>#{pharmacy.storeNumber}</span>
+                    {pharmacy.name}
                   </div>
-                  {/* Row 3: CNPJ + system */}
+                  {/* Row 3: CNPJ + assoc */}
                   <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                     <span style={{ fontFamily: "monospace", fontSize: 11, color: theme.text.secondary }}>{pharmacy.cnpj}</span>
-                    <span style={{
-                      padding: "1px 7px", borderRadius: 6,
-                      background: SYSTEM_COLORS[pharmacy.system].bg,
-                      color: SYSTEM_COLORS[pharmacy.system].color,
-                      border: `1px solid ${SYSTEM_COLORS[pharmacy.system].border}`,
-                      fontSize: 11, fontWeight: 700,
-                    }}>{pharmacy.system}</span>
+                    <span style={{ fontFamily: "monospace", fontSize: 11, color: theme.text.tertiary }}>{pharmacy.associationCode}</span>
                   </div>
-                  {/* Row 4: dates */}
-                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                    <span style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: theme.text.tertiary }}>
-                      Redshift: <strong style={{ color: theme.text.secondary }}>{formatDate(pharmacy.lastDateRedshift)}</strong>
-                    </span>
-                    <span style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: theme.text.tertiary }}>
-                      API: <strong style={{ color: theme.text.secondary }}>{formatDate(pharmacy.lastDateApi)}</strong>
-                    </span>
-                  </div>
-                  {/* Row 5: records */}
-                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                    <span style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: theme.text.tertiary }}>
-                      Reg. Redshift: <strong style={{ color: theme.text.secondary }}>
-                        {pharmacy.recordsRedshift === null ? "—" : pharmacy.recordsRedshift.toLocaleString("pt-BR")}
-                      </strong>
-                    </span>
-                    <span style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: theme.text.tertiary }}>
-                      Reg. API: <strong style={{ color: theme.text.secondary }}>
-                        {pharmacy.recordsApi === null ? "—" : pharmacy.recordsApi.toLocaleString("pt-BR")}
-                      </strong>
-                    </span>
+                  {/* Row 4: Gold / Silver / API tags */}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                      <span style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: theme.text.tertiary }}>Gold:</span>
+                      <TagBadge value={pharmacy.gold.status} lastSaleDate={pharmacy.gold.lastSaleDate} theme={theme} />
+                      <span style={{ fontFamily: "monospace", fontSize: 10, color: theme.text.tertiary }}>{formatDateBR(pharmacy.gold.lastSaleDate)}</span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                      <span style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: theme.text.tertiary }}>Silver:</span>
+                      <TagBadge value={pharmacy.silver.status} lastSaleDate={pharmacy.silver.lastSaleDate} theme={theme} />
+                      <span style={{ fontFamily: "monospace", fontSize: 10, color: theme.text.tertiary }}>{formatDateBR(pharmacy.silver.lastSaleDate)}</span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                      <span style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: theme.text.tertiary }}>API:</span>
+                      <TagBadge value={pharmacy.api.status} lastSaleDate={pharmacy.api.lastSaleDate} theme={theme} />
+                      <span style={{ fontFamily: "monospace", fontSize: 10, color: theme.text.tertiary }}>{formatDateBR(pharmacy.api.lastSaleDate)}</span>
+                    </div>
                   </div>
                 </div>
               );

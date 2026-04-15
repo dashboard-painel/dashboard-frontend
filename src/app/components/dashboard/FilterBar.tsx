@@ -1,21 +1,16 @@
 import { useState } from "react";
 import { ChevronDown, Search, X, SlidersHorizontal } from "lucide-react";
-import { mockPharmacies, Status, System, ContractStatus } from "../../data/mockData";
+import { mockPharmacies, Status } from "../../data/mockData";
 import { Theme } from "../../theme";
 import {
-  ALL_SYSTEMS,
   ALL_STATUSES,
-  ALL_CONTRACT_STATUSES,
   STATUS_LABELS_LONG,
 } from "../../constants";
 
 interface Filters {
-  systems: System[];
   statuses: Status[];
   cnpjs: string[];
   associationCodes: string[];
-  contractStatuses: ContractStatus[];
-  minLag: number;
 }
 
 interface FilterBarProps {
@@ -24,12 +19,9 @@ interface FilterBarProps {
 }
 
 const defaultFilters: Filters = {
-  systems: [...ALL_SYSTEMS],
   statuses: [...ALL_STATUSES],
   cnpjs: [],
   associationCodes: [],
-  contractStatuses: [...ALL_CONTRACT_STATUSES],
-  minLag: 0,
 };
 
 function MultiSelectDropdown({
@@ -333,29 +325,21 @@ function CnpjSearchDropdown({
 }
 
 export function FilterBar({ onApply, theme }: FilterBarProps) {
-  const [systems, setSystems] = useState<System[]>([...ALL_SYSTEMS]);
   const [statuses, setStatuses] = useState<Status[]>([...ALL_STATUSES]);
   const [cnpjs, setCnpjs] = useState<string[]>([]);
   const [associationCodes, setAssociationCodes] = useState<string[]>([]);
-  const [contractStatuses, setContractStatuses] = useState<ContractStatus[]>(
-    [...ALL_CONTRACT_STATUSES]
-  );
-  const [minLag, setMinLag] = useState(0);
 
   const allAssociationCodes = [
     ...new Set(mockPharmacies.map((p) => p.associationCode)),
   ].sort();
 
   const handleApply = () =>
-    onApply({ systems, statuses, cnpjs, associationCodes, contractStatuses, minLag });
+    onApply({ statuses, cnpjs, associationCodes });
 
   const handleClear = () => {
-    setSystems([...ALL_SYSTEMS]);
     setStatuses([...ALL_STATUSES]);
     setCnpjs([]);
     setAssociationCodes([]);
-    setContractStatuses([...ALL_CONTRACT_STATUSES]);
-    setMinLag(0);
     onApply(defaultFilters);
   };
 
@@ -391,26 +375,10 @@ export function FilterBar({ onApply, theme }: FilterBarProps) {
       </div>
 
       <MultiSelectDropdown
-        label="Sistema"
-        options={ALL_SYSTEMS}
-        selected={systems}
-        onChange={(v) => setSystems(v as System[])}
-        theme={theme}
-      />
-
-      <MultiSelectDropdown
         label="Associação"
         options={allAssociationCodes}
         selected={associationCodes}
         onChange={setAssociationCodes}
-        theme={theme}
-      />
-
-      <MultiSelectDropdown
-        label="Sit. Contrato"
-        options={ALL_CONTRACT_STATUSES}
-        selected={contractStatuses}
-        onChange={(v) => setContractStatuses(v as ContractStatus[])}
         theme={theme}
       />
 
@@ -424,45 +392,6 @@ export function FilterBar({ onApply, theme }: FilterBarProps) {
         renderOption={(v) => STATUS_LABELS_LONG[v as Status]}
         theme={theme}
       />
-
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <span
-          style={{
-            fontFamily: "Inter, sans-serif",
-            fontSize: 12,
-            color: theme.text.secondary,
-          }}
-        >
-          Atraso mín.:
-        </span>
-        <input
-          type="number"
-          min={0}
-          value={minLag}
-          onChange={(e) =>
-            setMinLag(Math.max(0, parseInt(e.target.value) || 0))
-          }
-          style={{
-            background: theme.bg.card,
-            border: `1px solid ${theme.border.dark}`,
-            color: theme.text.primary,
-            borderRadius: 8,
-            padding: "5px 8px",
-            width: 64,
-            fontSize: 12,
-            outline: "none",
-          }}
-        />
-        <span
-          style={{
-            fontFamily: "Inter, sans-serif",
-            fontSize: 12,
-            color: theme.text.tertiary,
-          }}
-        >
-          dias
-        </span>
-      </div>
 
       <button
         onClick={handleApply}

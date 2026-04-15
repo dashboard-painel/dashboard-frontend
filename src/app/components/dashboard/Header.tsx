@@ -71,7 +71,7 @@ export function Header({ theme, isDarkMode, onToggleDarkMode }: HeaderProps) {
               lineHeight: 1.3,
             }}
           >
-            Auditoria de Dados - Dashboard
+            Dashboard
           </h1>
         </div>
       </div>
@@ -106,36 +106,6 @@ export function Header({ theme, isDarkMode, onToggleDarkMode }: HeaderProps) {
           title={isDarkMode ? "Modo claro" : "Modo escuro"}
         >
           {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
-        </button>
-
-        <button
-          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
-          style={{
-            background: "rgba(255,255,255,0.12)",
-            color: "rgba(255,255,255,0.85)",
-            border: "1px solid rgba(255,255,255,0.2)",
-            fontFamily: "Inter, sans-serif",
-            fontSize: "13px",
-            cursor: "pointer",
-          }}
-        >
-          <Download size={15} />
-          Exportar Excel
-        </button>
-
-        <button
-          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-opacity hover:opacity-90"
-          style={{
-            background: "#00A3C4",
-            color: "#fff",
-            border: "none",
-            fontFamily: "Inter, sans-serif",
-            fontSize: "13px",
-            cursor: "pointer",
-          }}
-        >
-          <RefreshCw size={15} />
-          Atualizar Dados
         </button>
       </div>
     </header>

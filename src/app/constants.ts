@@ -4,7 +4,7 @@ import {
   AlertTriangle,
   XCircle,
 } from "lucide-react";
-import { Status, System, ContractStatus } from "./data/mockData";
+import { Status, TagValue } from "./data/mockData";
 import { Theme } from "./theme";
 
 // ─── Status metadata ─────────────────────────────────────────────────────────
@@ -109,53 +109,52 @@ export function getStatusColors(theme: Theme): Record<Status, string> {
   };
 }
 
-// ─── System / Contract color maps ────────────────────────────────────────────
+// ─── Tag value color helper ──────────────────────────────────────────────────
 
-export const SYSTEM_COLORS: Record<
-  System,
+export const TAG_VALUE_STYLES: Record<
+  TagValue,
   { color: string; bg: string; border: string }
 > = {
-  Trier: { color: "#1D6FA4", bg: "#EFF6FF", border: "#BFDBFE" },
-  "Alpha 7": { color: "#0D7C66", bg: "#ECFDF5", border: "#A7F3D0" },
-  Eden: { color: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE" },
-  Legado: { color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
+  OK:       { color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
+  ATRASADO: { color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
+  CRITICO:  { color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
 };
 
-export const CONTRACT_COLORS: Record<
-  ContractStatus,
-  { color: string; bg: string; border: string }
-> = {
-  Ativo: { color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
-  Suspenso: { color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
-  Inativo: { color: "#64748B", bg: "#F8FAFC", border: "#CBD5E1" },
-};
-
-// ─── Utility functions ────────────────────────────────────────────────────────
-
-export function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "—";
-  const [y, m, d] = dateStr.split("-");
-  return `${d}/${m}/${y}`;
+export function getTagValueStyles(
+  theme: Theme,
+): Record<TagValue, { color: string; bg: string; border: string }> {
+  const isDark = theme.bg.main === "#0F1419";
+  return {
+    OK:       { color: "#059669", bg: isDark ? "rgba(5,150,105,0.12)"   : "#ECFDF5", border: isDark ? "rgba(5,150,105,0.3)"   : "#A7F3D0" },
+    ATRASADO: { color: "#D97706", bg: isDark ? "rgba(217,119,6,0.12)"   : "#FFFBEB", border: isDark ? "rgba(217,119,6,0.3)"   : "#FDE68A" },
+    CRITICO:  { color: "#DC2626", bg: isDark ? "rgba(220,38,38,0.12)"   : "#FEF2F2", border: isDark ? "rgba(220,38,38,0.3)"   : "#FECACA" },
+  };
 }
 
-export function getLagColor(lag: number | null): string {
-  if (lag === null) return "#64748B";
-  if (lag === 0) return "#059669";
-  if (lag <= 3) return "#D97706";
-  return "#DC2626";
+// ─── Tag status computation ──────────────────────────────────────────────────
+
+/**
+ * Computes OK / ATRASADO / CRITICO based on how many days ago `lastSaleDate` was.
+ *   0–1 days ago → OK
+ *   2–3 days ago → ATRASADO
+ *   4+ days ago  → CRITICO
+ */
+export function computeTagStatus(lastSaleDate: string): TagValue {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const saleDate = new Date(lastSaleDate + "T00:00:00");
+  const diffMs = today.getTime() - saleDate.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays > 3) return "CRITICO";
+  if (diffDays > 1) return "ATRASADO";
+  return "OK";
 }
 
 // ─── Default filter state ────────────────────────────────────────────────────
 
-export const ALL_SYSTEMS: System[] = ["Trier", "Alpha 7", "Eden", "Legado"];
 export const ALL_STATUSES: Status[] = [
   "em_dia",
   "atraso_leve",
   "atraso_critico",
   "sem_dados",
-];
-export const ALL_CONTRACT_STATUSES: ContractStatus[] = [
-  "Ativo",
-  "Suspenso",
-  "Inativo",
 ];
